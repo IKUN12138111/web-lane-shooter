@@ -1579,7 +1579,7 @@ function showDeathOverlay(reason) {
   els.deathPanel.hidden = false;
   els.relicPanel.hidden = true;
   els.overlayKicker.textContent = "本局结束";
-  els.overlayTitle.textContent = "防线被突破了";
+  els.overlayTitle.textContent = "你被怪物撞到了";
   els.overlayDesc.textContent = reason;
   els.reviveBtn.hidden = state.reviveCount <= 0;
   els.playAgainBtn.textContent = "再来一局";
@@ -2224,10 +2224,8 @@ function updateEntities(dt) {
 
     if (entity.kind === "enemy") {
       if (entity.lane === state.focusLane && entity.y >= playerY - 36) {
-        const destroyed = resolveEntityHit(entity, entity.hp, entity.color, { silent: true });
-        if (destroyed) {
-          deadEntities.push(entity);
-        }
+        deadEntities.push(entity);
+        die("怪物已经冲到你脸上了，广告复活可以把局面往后推。");
       }
     }
 
