@@ -1360,12 +1360,15 @@ const RELIC_POOL = [
   {
     id: "ice",
     name: "寒冰子弹",
-    desc: "子弹命中后附带 10% 减速，最多叠到 50%。",
+    desc: "子弹命中后初始附带 20% 减速，最多叠到 50%。",
     rarity: "rare",
     family: "ice",
     accent: getRarityMeta("rare").accent,
     apply() {
-      state.bulletSlowReduction = Math.min(ICE_SLOW_MAX, state.bulletSlowReduction + ICE_SLOW_STEP);
+      state.bulletSlowReduction =
+        state.bulletSlowReduction <= 0
+          ? 0.2
+          : Math.min(ICE_SLOW_MAX, state.bulletSlowReduction + ICE_SLOW_STEP);
     },
   },
   {
