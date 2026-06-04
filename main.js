@@ -1779,6 +1779,48 @@ function updateEnemySlow(entity, dt) {
   }
 }
 
+function getPlayerHitbox() {
+  const pulse = 1 + Math.sin(state.time * 8) * 0.015;
+  const scale = 1.05 * pulse;
+  return {
+    x: state.playerX,
+    y: state.playerY,
+    halfW: 100 * scale * 0.41,
+    halfH: 140 * scale * 0.41,
+  };
+}
+
+function getEnemyHitbox(entity) {
+  const renderScale = clamp(0.62 + (entity.y / state.viewH) * 0.5, 0.62, 1.08);
+  const bodyW = entity.width * renderScale;
+  const bodyH = entity.height * renderScale;
+  const cycle = state.time * (entity.animSpeed || 6) + (entity.animSeed || 0);
+  const boss = Boolean(entity.boss);
+  const hop = (Math.sin(cycle) + 1) * 0.5;
+  const lift = Math.max(0, Math.sin(cycle)) * (boss ? 15 : 11);
+  const squashX = 1 + hop * (boss ? 0.02 : 0.04);
+  const squashY = 1 - hop * (boss ? 0.03 : 0.06);
+  const enemyW = bodyW * (boss ? 2.0 : 1.65) * squashX;
+  const enemyH = bodyH * (boss ? 1.72 : 1.48) * squashY;
+
+  return {
+    x: laneCenter(entity.lane, state.viewW),
+    y: entity.y - lift,
+    halfW: enemyW * 0.4,
+    halfH: enemyH * 0.4,
+  };
+}
+
+function boxesOverlap(a, b) {
+  return Math.abs(a.x - b.x) <= a.halfW + b.halfW
+    && Math.abs(a.y - b.y) <= a.halfH + b.halfH;
+}
+
+function doesEnemyHitPlayer(entity) {
+  if (!entity || entity.kind !== "enemy" || entity.lane !== state.focusLane) return false;
+  return boxesOverlap(getEnemyHitbox(entity), getPlayerHitbox());
+}
+
 function configureWaveState() {
   state.bossTier = getBossWaveTier(state.wave);
   state.bossWave = state.bossTier !== null;
@@ -2210,7 +2252,6 @@ function updateSpawnTimers(dt) {
 }
 
 function updateEntities(dt) {
-  const playerY = state.playerY;
   const deadEntities = [];
   const vineFrozen = isVineFreezeActive();
 
@@ -2223,9 +2264,9 @@ function updateEntities(dt) {
     entity.y += entity.speed * dt * slowMult * freezeMult;
 
     if (entity.kind === "enemy") {
-      if (entity.lane === state.focusLane && entity.y >= playerY - 36) {
+      if (entity.lane === state.focusLane && (doesEnemyHitPlayer(entity) || entity.y >= state.playerY + 18)) {
         deadEntities.push(entity);
-        die("怪物已经越过你守的位置了，广告复活可以把局面往后推。");
+        die("怪物碰到你，或者越过你守的位置了；看广告复活可以把局面往后推。");
       }
     }
 
