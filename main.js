@@ -5,6 +5,8 @@ const SMALL_BOSS_WAVE_INTERVAL = 5;
 const BIG_BOSS_WAVE_INTERVAL = 10;
 const THREAT_BASE_HP = 5;
 const PLAYER_Y_RATIO = 0.86;
+const DEFENSE_LINE_OFFSET = 54;
+const DEFENSE_LINE_THICKNESS = 8;
 const GRENADE_THROW_INTERVAL = 15;
 const GRENADE_BASE_DAMAGE = 200;
 const GRENADE_PICKUP_BONUS = 50;
@@ -1821,6 +1823,20 @@ function doesEnemyHitPlayer(entity) {
   return boxesOverlap(getEnemyHitbox(entity), getPlayerHitbox());
 }
 
+function getDefenseLineY() {
+  return state.playerY + DEFENSE_LINE_OFFSET;
+}
+
+function getEnemyBottomY(entity) {
+  const hitbox = getEnemyHitbox(entity);
+  return hitbox.y + hitbox.halfH;
+}
+
+function doesEnemyTouchDefenseLine(entity) {
+  if (!entity || entity.kind !== "enemy" || entity.lane !== state.focusLane) return false;
+  return getEnemyBottomY(entity) >= getDefenseLineY() - DEFENSE_LINE_THICKNESS * 0.5;
+}
+
 function configureWaveState() {
   state.bossTier = getBossWaveTier(state.wave);
   state.bossWave = state.bossTier !== null;
@@ -2264,9 +2280,9 @@ function updateEntities(dt) {
     entity.y += entity.speed * dt * slowMult * freezeMult;
 
     if (entity.kind === "enemy") {
-      if (entity.lane === state.focusLane && (doesEnemyHitPlayer(entity) || entity.y >= state.playerY + 18)) {
+      if (doesEnemyTouchDefenseLine(entity)) {
         deadEntities.push(entity);
-        die("怪物碰到你，或者越过你守的位置了；看广告复活可以把局面往后推。");
+        die("怪物碰到你身后的防线了；看广告复活可以把局面往后推。");
       }
     }
 
@@ -2472,6 +2488,48 @@ function drawBackground() {
   glow.addColorStop(1, "rgba(255, 255, 255, 0)");
   ctx.fillStyle = glow;
   ctx.fillRect(state.fieldLeft, state.fieldTop, state.fieldRight - state.fieldLeft, state.fieldBottom - state.fieldTop);
+}
+
+function drawDefenseLine() {
+  const laneWidth = state.viewW / LANE_COUNT;
+  const laneX = state.focusLane * laneWidth;
+  const lineY = getDefenseLineY();
+
+  ctx.save();
+  ctx.lineCap = "round";
+
+  ctx.strokeStyle = "rgba(255, 107, 107, 0.22)";
+  ctx.lineWidth = DEFENSE_LINE_THICKNESS + 8;
+  ctx.shadowColor = "rgba(255, 107, 107, 0.28)";
+  ctx.shadowBlur = 18;
+  ctx.beginPath();
+  ctx.moveTo(laneX + 18, lineY);
+  ctx.lineTo(laneX + laneWidth - 18, lineY);
+  ctx.stroke();
+
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = "rgba(255, 228, 228, 0.95)";
+  ctx.lineWidth = DEFENSE_LINE_THICKNESS;
+  ctx.beginPath();
+  ctx.moveTo(laneX + 18, lineY);
+  ctx.lineTo(laneX + laneWidth - 18, lineY);
+  ctx.stroke();
+
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.68)";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([9, 8]);
+  ctx.beginPath();
+  ctx.moveTo(laneX + 24, lineY);
+  ctx.lineTo(laneX + laneWidth - 24, lineY);
+  ctx.stroke();
+
+  ctx.setLineDash([]);
+  ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+  ctx.font = '800 12px "Figtree", "Inter", sans-serif';
+  ctx.textAlign = "left";
+  ctx.textBaseline = "bottom";
+  ctx.fillText("防线", laneX + 24, lineY - 7);
+  ctx.restore();
 }
 
 function drawValueBadge(x, y, value, options = {}) {
@@ -2870,6 +2928,7 @@ function draw() {
   ctx.translate(jx, jy);
 
   drawBackground();
+  drawDefenseLine();
   drawTargetHints();
   drawCompanions();
 
