@@ -2225,7 +2225,7 @@ function updateEntities(dt) {
     if (entity.kind === "enemy") {
       if (entity.lane === state.focusLane && entity.y >= playerY - 36) {
         deadEntities.push(entity);
-        die("怪物已经冲到你脸上了，广告复活可以把局面往后推。");
+        die("怪物已经越过你守的位置了，广告复活可以把局面往后推。");
       }
     }
 
